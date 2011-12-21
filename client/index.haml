@@ -2,9 +2,11 @@
   %head
     %script{:type => 'text/javascript',
       :src => 'http://ajax.googleapis.com/ajax/libs/jquery/1.5.1/jquery.min.js'}
+    %script{:type => 'text/javascript', :src => 'lib/geom.js'}
     %script{:type => 'text/javascript', :src => 'piece.js'}
+    %script{:type => 'text/javascript', :src => 'playArea.js'}
     %script{:type => 'text/javascript', :src => 'tetris.js'}
 
   %body
-    %canvas#canvas{:width => 400, :height => 400}
+    %canvas#canvas{:tabindex => '0', :width => 400, :height => 400}
       Browser not compatible with HTML5 canvas
