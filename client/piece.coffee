@@ -31,22 +31,22 @@ class window.Piece
       [[2,2],[2,3],[3,2],[3,3]]
     ]
     s: [
-      [[2,1],[2,2],[2,3],[2,4]]
-      [[2,1],[2,2],[2,3],[2,4]]
-      [[2,1],[2,2],[2,3],[2,4]]
-      [[2,1],[2,2],[2,3],[2,4]]
+      [[1,2],[1,3],[2,1],[2,2]]
+      [[1,2],[2,2],[2,3],[3,3]]
+      [[2,2],[2,3],[3,1],[3,2]]
+      [[1,1],[2,1],[2,2],[3,2]]
     ]
     t: [
+      [[2,1],[2,2],[2,3],[3,2]]
+      [[1,2],[2,1],[2,2],[3,2]]
       [[2,1],[2,2],[2,3],[1,2]]
-      [[2,1],[2,2],[2,3],[2,4]]
-      [[2,1],[2,2],[2,3],[2,4]]
-      [[2,1],[2,2],[2,3],[2,4]]
+      [[1,2],[2,2],[2,3],[3,2]]
     ]
     z: [
-      [[2,1],[2,2],[2,3],[2,4]]
-      [[2,1],[2,2],[2,3],[2,4]]
-      [[2,1],[2,2],[2,3],[2,4]]
-      [[2,1],[2,2],[2,3],[2,4]]
+      [[1,1],[1,2],[2,2],[2,3]]
+      [[1,3],[2,2],[2,3],[3,2]]
+      [[2,1],[2,2],[3,2],[3,3]]
+      [[1,2],[2,1],[2,2],[3,1]]
     ]
 
   constructor: (@type, @playArea) ->
@@ -58,17 +58,36 @@ class window.Piece
     @movingLeft = false
     @movingRight = false
 
+    @rotateSpeed = 0.5
+    @horizontalSpeed = 10
+
     pivot = if @type is 'o' then 3 else 2.5
     @shape = new PieceShape @cells, @col*@playArea.cellWidth,
       0, @playArea.cellWidth, @playArea.cellHeight, 0, pivot
 
-  drop: ->
+  moveDown: ->
+    @shape.y+=5
+
+  moveLeft: ->
+    if @movingRight
+      @col++
+      @shape.x = @col*@playArea.cellWidth
+      @movingRight = false
+    @movingLeft = true
+    
+  moveRight: ->
+    if @movingLeft
+      @col--
+      @shape.x = @col*@playArea.cellWidth
+      @movingLeft = false
+    @movingRight = true
+
+  rotate: ->
+    @rotating = true
 
   update: ->
-    if rotatePressed
-      @rotating = true
     if @rotating
-      @shape.rotation+=0.5
+      @shape.rotation+=@rotateSpeed
       if @shape.rotation >= 1.57
         @rotationIndex = (@rotationIndex + 1) % 4
         @cells = Piece.shapes[@type][@rotationIndex]
@@ -76,34 +95,19 @@ class window.Piece
         @shape.rotation = 0
         @rotating = false
 
-    if leftPressed
-      if @movingRight
-        @col++
-        @shape.x = @col*@playArea.cellWidth
-        @movingRight = false
-      @movingLeft = true
     if @movingLeft
-      @shape.x -= 5
+      @shape.x -= @horizontalSpeed
       if @shape.x <= (@col-1)*@playArea.cellWidth
         @col--
         @shape.x = @col*@playArea.cellWidth
         @movingLeft = false
         
-    if rightPressed
-      if @movingLeft
-        @col--
-        @shape.x = @col*@playArea.cellWidth
-        @movingLeft = false
-      @movingRight = true
     if @movingRight
-      @shape.x += 5
+      @shape.x += @horizontalSpeed
       if @shape.x >= (@col+1)*@playArea.cellWidth
         @col++
         @shape.x = @col*@playArea.cellWidth
         @movingRight = false
-
-    if downPressed
-      @shape.y+=5
 
   draw: (ctx) ->
     @shape.draw ctx

@@ -1,34 +1,96 @@
 class window.PlayArea
+  # static
+  @numCellsHigh = 20
+  @numCellsWide = 10
+  @pieceTypes = ['i', 'j', 'l', 'o', 's', 't', 'z']
+
   constructor: (@x, @y, @w, @h) ->
     @currentPiece = null
-    @cellWidth = @w/20
-    @cellHeight = @h/20
-    @matrix = ((0 for i in [1..20-1]) for j in [1..20-1])
+    @cellWidth = @w/PlayArea.numCellsWide
+    @cellHeight = @h/PlayArea.numCellsHigh
+    @matrix = ((0 for i in [1..PlayArea.numCellsWide]) for j in [1..PlayArea.numCellsHigh])
 
-    #testing 
-    console.log @matrix
-    @matrix[10][12] = 1
-    @matrix[10][13] = 1
-    @matrix[11][12] = 1
-    @matrix[12][12] = 1
-    @matrix[10][14] = 1
+    @upKey = 38
+    @downKey = 40
+    @leftKey = 37
+    @rightKey = 39
+    @rotateKey = 90
 
-  setCurrentPiece: (@currentPiece) ->
+    @leftPressed = false
+    @rightPressed = false
+    @downPressed =  false
+    @rotatePressed = false
+
+    @nextPiece()
+
+  registerKeys: (receiver) ->
+    t = this
+    receiver.keydown (e) ->
+      e.preventDefault()
+      switch e.which
+        when t.leftKey then t.leftPressed = true
+        when t.rightKey then t.rightPressed = true
+        when t.downKey then t.downPressed = true
+        when t.rotateKey then t.rotatePressed = true
+        when t.upKey then t.dropAndCommit()
+
+    receiver.keyup (e) ->
+      e.preventDefault()
+      switch e.which
+        when t.leftKey then t.leftPressed = false
+        when t.rightKey then t.rightPressed = false
+        when t.downKey then t.downPressed = false
+        when t.rotateKey then t.rotatePressed = false
 
   dropAndCommit: ->
-    @currentPiece.drop()
+    @drop()
     @commit()
+    @clearLines()
+    @nextPiece()
+
+  drop: ->
+    until @checkCollision()
+      @currentPiece.row++
+    @currentPiece.row--
 
   commit: ->
-    #for cell in @currentPiece.cells
-      #do nothing
+    for cell in @currentPiece.cells
+      @matrix[@currentPiece.row+cell[0]][@currentPiece.col+cell[1]] = 1
+
+  clearLines: ->
+
+
+  nextPiece: ->
+    rand = Math.floor Math.random()*PlayArea.pieceTypes.length
+    @currentPiece = new Piece PlayArea.pieceTypes[rand], this
+
+  checkCollision: ->
+    for cell in @currentPiece.cells
+      # check bounds
+      if @currentPiece.row+cell[0] >= PlayArea.numCellsHigh
+        return true
+      if @currentPiece.col+cell[1] < 0 or @currentPiece.col+cell[1] >= PlayArea.numCellsWide
+        return true
+      # check collision
+      if @matrix[@currentPiece.row+cell[0]][@currentPiece.col+cell[1]] is 1
+        return true
+    return false
 
   update: ->
+    if @downPressed
+      @currentPiece.moveDown()
+    if @leftPressed
+      @currentPiece.moveLeft()
+    if @rightPressed
+      @currentPiece.moveRight()
+    if @rotatePressed
+      @currentPiece.rotate()
+
     @currentPiece.update()
 
   draw: (ctx) ->
     # draw play area
-    rect = new Rect @x, @y, @w, @h, 'grey'
+    rect = new Rect @x, @y, @w, @h, '#eeeeee'
     rect.draw ctx
     for i in [0..@matrix.length-1]
       for j in [0..@matrix[1].length-1]
