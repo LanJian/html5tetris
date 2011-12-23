@@ -58,7 +58,9 @@ class window.PlayArea
     @currentPiece.row--
 
   commit: ->
+    console.log @currentPiece.cells
     for cell in @currentPiece.cells
+      console.log @matrix[@currentPiece.row+cell[0]][@currentPiece.col+cell[1]]
       @matrix[@currentPiece.row+cell[0]][@currentPiece.col+cell[1]] = 1
 
   clearLines: ->
@@ -69,11 +71,10 @@ class window.PlayArea
       @clearing = true
 
   collapse: ->
-    for i in @clearList
-      @matrix[i] = (0 for num in [1..PlayArea.numCellsWide])
+    for row in @clearList
+      @matrix[1..row] = @matrix[0..row-1]
+      @matrix[0] = (0 for num in [1..PlayArea.numCellsWide])
     @clearList = []
-    @clearing = false
-    @clearFlash = 0
 
   nextPiece: ->
     rand = Math.floor Math.random()*PlayArea.pieceTypes.length
@@ -96,7 +97,11 @@ class window.PlayArea
       for i in @clearList
         @matrix[i] = @matrix[i].map (a) -> (a+1)%2
       @clearFlash++
-      if @clearFlash >= 5
+      if @clearFlash >= 8
+        for i in @clearList
+          @matrix[i] = (0 for num in [1..PlayArea.numCellsWide])
+        @clearing = false
+        @clearFlash = 0
         @collapse()
     else
       if @downPressed
