@@ -21,6 +21,10 @@ class window.PlayArea
     @downPressed =  false
     @rotatePressed = false
 
+    @clearList = []
+    @clearing = false
+    @clearFlash = 0
+
     @nextPiece()
 
   registerKeys: (receiver) ->
@@ -58,7 +62,18 @@ class window.PlayArea
       @matrix[@currentPiece.row+cell[0]][@currentPiece.col+cell[1]] = 1
 
   clearLines: ->
+    for i in [0..PlayArea.numCellsHigh-1]
+      if @matrix[i].reduce((a, b) -> a and b)
+        @clearList.push i
+    if @clearList.length > 0
+      @clearing = true
 
+  collapse: ->
+    for i in @clearList
+      @matrix[i] = (0 for num in [1..PlayArea.numCellsWide])
+    @clearList = []
+    @clearing = false
+    @clearFlash = 0
 
   nextPiece: ->
     rand = Math.floor Math.random()*PlayArea.pieceTypes.length
@@ -77,16 +92,23 @@ class window.PlayArea
     return false
 
   update: ->
-    if @downPressed
-      @currentPiece.moveDown()
-    if @leftPressed
-      @currentPiece.moveLeft()
-    if @rightPressed
-      @currentPiece.moveRight()
-    if @rotatePressed
-      @currentPiece.rotate()
+    if @clearing
+      for i in @clearList
+        @matrix[i] = @matrix[i].map (a) -> (a+1)%2
+      @clearFlash++
+      if @clearFlash >= 5
+        @collapse()
+    else
+      if @downPressed
+        @currentPiece.moveDown()
+      if @leftPressed
+        @currentPiece.moveLeft()
+      if @rightPressed
+        @currentPiece.moveRight()
+      if @rotatePressed
+        @currentPiece.rotate()
 
-    @currentPiece.update()
+      @currentPiece.update()
 
   draw: (ctx) ->
     # draw play area
