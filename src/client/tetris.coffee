@@ -18,7 +18,7 @@ init = ->
   HEIGHT = canvas.height
   ctx = canvas.getContext '2d'
   
-  playArea = new PlayArea 0, 0, WIDTH, HEIGHT
+  playArea = new PlayArea 0, 0, 300, HEIGHT
   playArea.registerKeys $('#canvas')
 
   gameLoop()

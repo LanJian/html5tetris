@@ -9,12 +9,13 @@
     PlayArea.pieceTypes = ['i', 'j', 'l', 'o', 's', 't', 'z'];
 
     function PlayArea(x, y, w, h) {
-      var i, j;
+      var i, j, rand;
       this.x = x;
       this.y = y;
       this.w = w;
       this.h = h;
       this.currentPiece = null;
+      this.ghost = null;
       this.cellWidth = this.w / PlayArea.numCellsWide;
       this.cellHeight = this.h / PlayArea.numCellsHigh;
       this.matrix = (function() {
@@ -41,9 +42,17 @@
       this.rightPressed = false;
       this.downPressed = false;
       this.rotatePressed = false;
+      this.upPressed = false;
+      this.playing = true;
       this.clearList = [];
       this.clearing = false;
       this.clearFlash = 0;
+      this.downSpeed = 3;
+      this.piecesQueue = [];
+      for (i = 0; i <= 3; i++) {
+        rand = Math.floor(Math.random() * PlayArea.pieceTypes.length);
+        this.piecesQueue.push(new Piece(PlayArea.pieceTypes[rand], this));
+      }
       this.nextPiece();
     }
 
@@ -62,7 +71,7 @@
           case t.rotateKey:
             return t.rotatePressed = true;
           case t.upKey:
-            return t.dropAndCommit();
+            return t.upPressed = true;
         }
       });
       return receiver.keyup(function(e) {
@@ -76,6 +85,8 @@
             return t.downPressed = false;
           case t.rotateKey:
             return t.rotatePressed = false;
+          case t.upKey:
+            return t.upPressed = false;
         }
       });
     };
@@ -87,24 +98,30 @@
       return this.nextPiece();
     };
 
-    PlayArea.prototype.drop = function() {
-      while (!this.checkCollision()) {
-        this.currentPiece.row++;
+    PlayArea.prototype.drop = function(piece) {
+      if (piece == null) piece = this.currentPiece;
+      while (!this.checkCollision(null, piece)) {
+        piece.row++;
       }
-      return this.currentPiece.row--;
+      return piece.row--;
     };
 
     PlayArea.prototype.commit = function() {
-      var cell, _i, _len, _ref, _results;
-      console.log(this.currentPiece.cells);
+      var cell, _i, _len, _ref;
       _ref = this.currentPiece.cells;
-      _results = [];
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         cell = _ref[_i];
-        console.log(this.matrix[this.currentPiece.row + cell[0]][this.currentPiece.col + cell[1]]);
-        _results.push(this.matrix[this.currentPiece.row + cell[0]][this.currentPiece.col + cell[1]] = 1);
+        if (this.currentPiece.row + cell[0] < 0) {
+          this.gameOver();
+          return;
+        }
+        this.matrix[this.currentPiece.row + cell[0]][this.currentPiece.col + cell[1]] = 1;
       }
-      return _results;
+    };
+
+    PlayArea.prototype.gameOver = function() {
+      this.playing = false;
+      return console.log('game is over');
     };
 
     PlayArea.prototype.clearLines = function() {
@@ -139,21 +156,36 @@
 
     PlayArea.prototype.nextPiece = function() {
       var rand;
+      this.piecesQueue.map(function(p) {
+        return console.log(p.type);
+      });
+      this.currentPiece = this.piecesQueue.shift();
+      console.log(this.currentPiece.type);
+      this.ghost = new Piece('l', this, 'red');
+      this.ghost.copy(this.currentPiece);
+      this.drop(this.ghost);
       rand = Math.floor(Math.random() * PlayArea.pieceTypes.length);
-      return this.currentPiece = new Piece(PlayArea.pieceTypes[rand], this);
+      return this.piecesQueue.push(new Piece(PlayArea.pieceTypes[rand], this));
     };
 
-    PlayArea.prototype.checkCollision = function() {
-      var cell, _i, _len, _ref;
-      _ref = this.currentPiece.cells;
+    PlayArea.prototype.checkCollision = function(transformation, p) {
+      var cell, piece, _i, _len, _ref;
+      if (transformation == null) transformation = (function() {});
+      if (p == null) p = this.currentPiece;
+      piece = $.extend(true, {}, p);
+      piece.shape = $.extend(true, {}, p.shape);
+      transformation.call(piece);
+      _ref = piece.cells;
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         cell = _ref[_i];
-        if (this.currentPiece.row + cell[0] >= PlayArea.numCellsHigh) return true;
-        if (this.currentPiece.col + cell[1] < 0 || this.currentPiece.col + cell[1] >= PlayArea.numCellsWide) {
+        if (piece.row + cell[0] >= PlayArea.numCellsHigh) return true;
+        if (piece.col + cell[1] < 0 || piece.col + cell[1] >= PlayArea.numCellsWide) {
           return true;
         }
-        if (this.matrix[this.currentPiece.row + cell[0]][this.currentPiece.col + cell[1]] === 1) {
-          return true;
+        if (piece.row + cell[0] >= 0) {
+          if (this.matrix[piece.row + cell[0]][piece.col + cell[1]] === 1) {
+            return true;
+          }
         }
       }
       return false;
@@ -161,6 +193,7 @@
 
     PlayArea.prototype.update = function() {
       var i, num, _i, _j, _len, _len2, _ref, _ref2;
+      if (!this.playing) return;
       if (this.clearing) {
         _ref = this.clearList;
         for (_i = 0, _len = _ref.length; _i < _len; _i++) {
@@ -188,11 +221,29 @@
           return this.collapse();
         }
       } else {
-        if (this.downPressed) this.currentPiece.moveDown();
-        if (this.leftPressed) this.currentPiece.moveLeft();
-        if (this.rightPressed) this.currentPiece.moveRight();
-        if (this.rotatePressed) this.currentPiece.rotate();
-        return this.currentPiece.update();
+        if (this.downPressed) this.currentPiece.animateDown();
+        if (this.leftPressed && !this.checkCollision(this.currentPiece.left)) {
+          this.currentPiece.animateLeft();
+        }
+        if (this.rightPressed && !this.checkCollision(this.currentPiece.right)) {
+          this.currentPiece.animateRight();
+        }
+        if (this.rotatePressed && !this.checkCollision(this.currentPiece.rotate)) {
+          this.currentPiece.animateRotate();
+        }
+        if (this.upPressed) {
+          this.dropAndCommit();
+          this.upPressed = false;
+        }
+        this.currentPiece.animateDown(this.downSpeed);
+        if (this.checkCollision(this.currentPiece.down)) {
+          this.currentPiece.up();
+          this.dropAndCommit();
+        }
+        this.currentPiece.update();
+        this.ghost.copy(this.currentPiece);
+        this.drop(this.ghost);
+        return this.ghost.updateShape();
       }
     };
 
@@ -208,6 +259,7 @@
           }
         }
       }
+      this.ghost.draw(ctx);
       return this.currentPiece.draw(ctx);
     };
 

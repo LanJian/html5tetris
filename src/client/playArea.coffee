@@ -6,6 +6,7 @@ class window.PlayArea
 
   constructor: (@x, @y, @w, @h) ->
     @currentPiece = null
+    @ghost = null
     @cellWidth = @w/PlayArea.numCellsWide
     @cellHeight = @h/PlayArea.numCellsHigh
     @matrix = ((0 for i in [1..PlayArea.numCellsWide]) for j in [1..PlayArea.numCellsHigh])
@@ -20,10 +21,20 @@ class window.PlayArea
     @rightPressed = false
     @downPressed =  false
     @rotatePressed = false
+    @upPressed = false
+
+    @playing = true
 
     @clearList = []
     @clearing = false
     @clearFlash = 0
+
+    @downSpeed = 3
+
+    @piecesQueue = []
+    for i in [0..3]
+      rand = Math.floor Math.random()*PlayArea.pieceTypes.length
+      @piecesQueue.push new Piece PlayArea.pieceTypes[rand], this
 
     @nextPiece()
 
@@ -36,7 +47,7 @@ class window.PlayArea
         when t.rightKey then t.rightPressed = true
         when t.downKey then t.downPressed = true
         when t.rotateKey then t.rotatePressed = true
-        when t.upKey then t.dropAndCommit()
+        when t.upKey then t.upPressed = true
 
     receiver.keyup (e) ->
       e.preventDefault()
@@ -45,6 +56,7 @@ class window.PlayArea
         when t.rightKey then t.rightPressed = false
         when t.downKey then t.downPressed = false
         when t.rotateKey then t.rotatePressed = false
+        when t.upKey then t.upPressed = false
 
   dropAndCommit: ->
     @drop()
@@ -52,16 +64,21 @@ class window.PlayArea
     @clearLines()
     @nextPiece()
 
-  drop: ->
-    until @checkCollision()
-      @currentPiece.row++
-    @currentPiece.row--
+  drop: (piece = @currentPiece) ->
+    until @checkCollision(null, piece)
+      piece.row++
+    piece.row--
 
   commit: ->
-    console.log @currentPiece.cells
     for cell in @currentPiece.cells
-      console.log @matrix[@currentPiece.row+cell[0]][@currentPiece.col+cell[1]]
+      if @currentPiece.row+cell[0] < 0
+        @gameOver()
+        return
       @matrix[@currentPiece.row+cell[0]][@currentPiece.col+cell[1]] = 1
+
+  gameOver: ->
+    @playing = false
+    console.log 'game is over'
 
   clearLines: ->
     for i in [0..PlayArea.numCellsHigh-1]
@@ -77,22 +94,36 @@ class window.PlayArea
     @clearList = []
 
   nextPiece: ->
-    rand = Math.floor Math.random()*PlayArea.pieceTypes.length
-    @currentPiece = new Piece PlayArea.pieceTypes[rand], this
+    @piecesQueue.map (p) -> console.log p.type
+    @currentPiece = @piecesQueue.shift()
+    console.log @currentPiece.type
+    @ghost = new Piece 'l', this, 'red'
+    @ghost.copy @currentPiece
+    @drop @ghost
 
-  checkCollision: ->
-    for cell in @currentPiece.cells
+    rand = Math.floor Math.random()*PlayArea.pieceTypes.length
+    @piecesQueue.push new Piece PlayArea.pieceTypes[rand], this
+
+  checkCollision: (transformation = ( -> ), p = @currentPiece) ->
+    piece = $.extend(true, {}, p)
+    piece.shape = $.extend(true, {}, p.shape)
+    transformation.call(piece)
+    for cell in piece.cells
       # check bounds
-      if @currentPiece.row+cell[0] >= PlayArea.numCellsHigh
+      if piece.row+cell[0] >= PlayArea.numCellsHigh
         return true
-      if @currentPiece.col+cell[1] < 0 or @currentPiece.col+cell[1] >= PlayArea.numCellsWide
+      if piece.col+cell[1] < 0 or piece.col+cell[1] >= PlayArea.numCellsWide
         return true
       # check collision
-      if @matrix[@currentPiece.row+cell[0]][@currentPiece.col+cell[1]] is 1
-        return true
+      if piece.row+cell[0] >= 0
+        if @matrix[piece.row+cell[0]][piece.col+cell[1]] is 1
+          return true
     return false
 
   update: ->
+    if not @playing
+      return
+
     if @clearing
       for i in @clearList
         @matrix[i] = @matrix[i].map (a) -> (a+1)%2
@@ -105,15 +136,27 @@ class window.PlayArea
         @collapse()
     else
       if @downPressed
-        @currentPiece.moveDown()
-      if @leftPressed
-        @currentPiece.moveLeft()
-      if @rightPressed
-        @currentPiece.moveRight()
-      if @rotatePressed
-        @currentPiece.rotate()
+        @currentPiece.animateDown()
+      if @leftPressed and not @checkCollision @currentPiece.left
+        @currentPiece.animateLeft()
+      if @rightPressed and not @checkCollision @currentPiece.right
+        @currentPiece.animateRight()
+      if @rotatePressed and not @checkCollision @currentPiece.rotate
+        @currentPiece.animateRotate()
+      if @upPressed
+        @dropAndCommit()
+        @upPressed = false
+
+      @currentPiece.animateDown(@downSpeed)
+      if @checkCollision @currentPiece.down
+        @currentPiece.up()
+        @dropAndCommit()
 
       @currentPiece.update()
+      
+      @ghost.copy @currentPiece
+      @drop @ghost
+      @ghost.updateShape()
 
   draw: (ctx) ->
     # draw play area
@@ -126,6 +169,14 @@ class window.PlayArea
             @cellWidth-1, @cellHeight-1, 'green'
           rect.draw ctx
 
+    # draw next pieces
+    #for i in [0..@piecesQueue.length-1]
+      #p = @piecesQueue[i]
+      #p.row = 0 + i*5
+      #p.col = PlayArea.numCellsWide
+      #p.draw ctx
+
     # draw current piece
+    @ghost.draw ctx
     @currentPiece.draw ctx
 
