@@ -1,5 +1,5 @@
 (function() {
-  var HEIGHT, WIDTH, clear, ctx, draw, gameLoop, init, playArea, update;
+  var HEIGHT, WIDTH, clear, ctx, draw, gameLoop, init, opponentArea, playArea, update;
 
   ctx = null;
 
@@ -8,6 +8,8 @@
   HEIGHT = null;
 
   playArea = null;
+
+  opponentArea = null;
 
   $(document).ready(function() {
     return init();
@@ -20,18 +22,17 @@
   init = function() {
     var canvas;
     console.log("init");
+    now.name = prompt("What's your name?", "");
     canvas = $('#canvas')[0];
     WIDTH = canvas.width;
     HEIGHT = canvas.height;
-    ctx = canvas.getContext('2d');
-    playArea = new PlayArea(0, 0, 300, HEIGHT);
-    playArea.registerKeys($('#canvas'));
-    return gameLoop();
+    return ctx = canvas.getContext('2d');
   };
 
   draw = function() {
     clear();
-    return playArea.draw(ctx);
+    playArea.draw(ctx);
+    return opponentArea.draw(ctx);
   };
 
   update = function() {
@@ -42,6 +43,13 @@
     update();
     draw();
     return setTimeout(gameLoop, 1000 / 30);
+  };
+
+  now.joinGame = function(pos) {
+    playArea = new PlayArea(pos * 400, 0, 300, HEIGHT);
+    playArea.registerKeys($('#canvas'));
+    opponentArea = new PlayArea((pos + 1) % 2 * 400, 0, 300, HEIGHT);
+    return gameLoop();
   };
 
 }).call(this);

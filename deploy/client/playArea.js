@@ -259,8 +259,11 @@
           }
         }
       }
+      ctx.save();
+      ctx.translate(this.x, this.y);
       this.ghost.draw(ctx);
-      return this.currentPiece.draw(ctx);
+      this.currentPiece.draw(ctx);
+      return ctx.restore();
     };
 
     return PlayArea;

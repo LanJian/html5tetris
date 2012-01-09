@@ -177,6 +177,9 @@ class window.PlayArea
       #p.draw ctx
 
     # draw current piece
+    ctx.save()
+    ctx.translate @x, @y
     @ghost.draw ctx
     @currentPiece.draw ctx
+    ctx.restore()
 
