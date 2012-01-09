@@ -29,6 +29,7 @@ draw = ->
 
 update = ->
   playArea.update()
+  opponentArea.update()
 
 gameLoop = ->
   update()
@@ -41,3 +42,7 @@ now.joinGame = (pos) ->
   playArea.registerKeys $('#canvas')
   opponentArea = new PlayArea (pos+1)%2*400, 0, 300, HEIGHT
   gameLoop()
+
+now.receiveEvent = (e) ->
+  console.log 'received: ' + e
+  opponentArea.handleEvent e

@@ -47,3 +47,15 @@ nowjs.on 'disconnect', ->
     playerOne = null
   else if @user.clientId is playerTwo
     playerTwo = null
+
+
+everyone.now.sendEvent = (e) ->
+  console.log e
+  if @user.clientId is playerOne
+    if playerTwo != null
+      nowjs.getClient playerTwo, ->
+        @now.receiveEvent e
+  else if @user.clientId is playerTwo
+    if playerOne != null
+      nowjs.getClient playerOne, ->
+        @now.receiveEvent e

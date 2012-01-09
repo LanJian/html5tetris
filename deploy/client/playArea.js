@@ -61,6 +61,7 @@
       t = this;
       receiver.keydown(function(e) {
         e.preventDefault();
+        now.sendEvent('down.' + e.which);
         switch (e.which) {
           case t.leftKey:
             return t.leftPressed = true;
@@ -76,6 +77,7 @@
       });
       return receiver.keyup(function(e) {
         e.preventDefault();
+        now.sendEvent('up.' + e.which);
         switch (e.which) {
           case t.leftKey:
             return t.leftPressed = false;
@@ -89,6 +91,39 @@
             return t.upPressed = false;
         }
       });
+    };
+
+    PlayArea.prototype.handleEvent = function(e) {
+      var t, tokens;
+      tokens = e.split('.');
+      t = this;
+      if (tokens[0] === 'down') {
+        switch (parseInt(tokens[1])) {
+          case t.leftKey:
+            return t.leftPressed = true;
+          case t.rightKey:
+            return t.rightPressed = true;
+          case t.downKey:
+            return t.downPressed = true;
+          case t.rotateKey:
+            return t.rotatePressed = true;
+          case t.upKey:
+            return t.upPressed = true;
+        }
+      } else if (tokens[0] === 'up') {
+        switch (parseInt(tokens[1])) {
+          case t.leftKey:
+            return t.leftPressed = false;
+          case t.rightKey:
+            return t.rightPressed = false;
+          case t.downKey:
+            return t.downPressed = false;
+          case t.rotateKey:
+            return t.rotatePressed = false;
+          case t.upKey:
+            return t.upPressed = false;
+        }
+      }
     };
 
     PlayArea.prototype.dropAndCommit = function() {
@@ -156,11 +191,7 @@
 
     PlayArea.prototype.nextPiece = function() {
       var rand;
-      this.piecesQueue.map(function(p) {
-        return console.log(p.type);
-      });
       this.currentPiece = this.piecesQueue.shift();
-      console.log(this.currentPiece.type);
       this.ghost = new Piece('l', this, 'red');
       this.ghost.copy(this.currentPiece);
       this.drop(this.ghost);

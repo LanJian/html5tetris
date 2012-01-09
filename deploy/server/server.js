@@ -69,4 +69,21 @@
     }
   });
 
+  everyone.now.sendEvent = function(e) {
+    console.log(e);
+    if (this.user.clientId === playerOne) {
+      if (playerTwo !== null) {
+        return nowjs.getClient(playerTwo, function() {
+          return this.now.receiveEvent(e);
+        });
+      }
+    } else if (this.user.clientId === playerTwo) {
+      if (playerOne !== null) {
+        return nowjs.getClient(playerOne, function() {
+          return this.now.receiveEvent(e);
+        });
+      }
+    }
+  };
+
 }).call(this);

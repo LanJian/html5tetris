@@ -42,6 +42,7 @@ class window.PlayArea
     t = this
     receiver.keydown (e) ->
       e.preventDefault()
+      now.sendEvent 'down.' + e.which
       switch e.which
         when t.leftKey then t.leftPressed = true
         when t.rightKey then t.rightPressed = true
@@ -51,12 +52,32 @@ class window.PlayArea
 
     receiver.keyup (e) ->
       e.preventDefault()
+      now.sendEvent 'up.' + e.which
       switch e.which
         when t.leftKey then t.leftPressed = false
         when t.rightKey then t.rightPressed = false
         when t.downKey then t.downPressed = false
         when t.rotateKey then t.rotatePressed = false
         when t.upKey then t.upPressed = false
+
+  handleEvent: (e) ->
+    tokens = e.split '.'
+    t = this
+    if tokens[0] is 'down'
+      switch parseInt tokens[1]
+        when t.leftKey then t.leftPressed = true
+        when t.rightKey then t.rightPressed = true
+        when t.downKey then t.downPressed = true
+        when t.rotateKey then t.rotatePressed = true
+        when t.upKey then t.upPressed = true
+    else if tokens[0] is 'up'
+      switch parseInt tokens[1]
+        when t.leftKey then t.leftPressed = false
+        when t.rightKey then t.rightPressed = false
+        when t.downKey then t.downPressed = false
+        when t.rotateKey then t.rotatePressed = false
+        when t.upKey then t.upPressed = false
+
 
   dropAndCommit: ->
     @drop()
@@ -94,9 +115,7 @@ class window.PlayArea
     @clearList = []
 
   nextPiece: ->
-    @piecesQueue.map (p) -> console.log p.type
     @currentPiece = @piecesQueue.shift()
-    console.log @currentPiece.type
     @ghost = new Piece 'l', this, 'red'
     @ghost.copy @currentPiece
     @drop @ghost

@@ -36,7 +36,8 @@
   };
 
   update = function() {
-    return playArea.update();
+    playArea.update();
+    return opponentArea.update();
   };
 
   gameLoop = function() {
@@ -50,6 +51,11 @@
     playArea.registerKeys($('#canvas'));
     opponentArea = new PlayArea((pos + 1) % 2 * 400, 0, 300, HEIGHT);
     return gameLoop();
+  };
+
+  now.receiveEvent = function(e) {
+    console.log('received: ' + e);
+    return opponentArea.handleEvent(e);
   };
 
 }).call(this);
